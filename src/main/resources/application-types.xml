@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="Person" format="xml">
+      <types:shape format="xml-schema" element="{http://www.demandware.com/xml/impex/dcext/2016-04-05}dcext" location="schemas/dcext.xsd"/>
+    </types:type>
+    <types:type name="Account" format="json">
+      <types:shape format="weave" example="examples/Individual1.json"><![CDATA[%dw 2.0
+
+type Account = {|
+  "$type": String, 
+  familyName: String, 
+  firstName: String, 
+  date: String, 
+  contactPoints: Array<{|    "$type": String,     "type": String,     enteredPhone: String  |}>
+|} {"example": "{\\\"\$type\\\":\\\"Individual\\\",\\\"familyName\\\":\\\"Fineman\\\",\\\"firstName\\\":\\\"Charlie\\\",\\\"date\\\":\\\"2018-05-15T19:43:54.000Z\\\",\\\"contactPoints\\\":[{\\\"\$type\\\":\\\"AllContactPoint\\\",\\\"type\\\":\\\"mobile\\\",\\\"enteredPhone\\\":\\\"510-555-1234\\\"},{\\\"\$type\\\":\\\"AllContactPoint\\\",\\\"type\\\":\\\"home\\\",\\\"enteredPhone\\\":\\\"510-555-6789\\\"}]}"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+</types:mule>

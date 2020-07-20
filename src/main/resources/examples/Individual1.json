@@ -1,0 +1,18 @@
+{
+	"$type": "Individual",
+	"familyName": "Fineman",
+	"firstName": "Charlie",
+	"date": "2018-05-15T19:43:54.000Z",
+	"contactPoints": [
+		{
+			"$type": "AllContactPoint",
+			"type": "mobile",
+			"enteredPhone": "510-555-1234"
+		},
+		{
+			"$type": "AllContactPoint",
+			"type": "home",
+			"enteredPhone": "510-555-6789"
+		}
+	]
+}

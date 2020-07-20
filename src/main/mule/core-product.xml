@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce-composite="http://www.mulesoft.org/schema/mule/salesforce-composite" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org/schema/mule/salesforce-composite/current/mule-salesforce-composite.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="9c1c3ba8-189f-4246-a161-c2a7f9f43bf8" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="core-productFlow" doc:id="0217eb80-f3dc-4c0d-ad27-67eb8e62a9b8" >
+		<http:listener doc:name="Listener" doc:id="54232875-7422-414b-96d3-3879e098d74e" config-ref="HTTP_Listener_config" path="/javatest" allowedMethods="POST"/>
+		<java:new doc:name="New" doc:id="634cfc70-9d66-4c7a-bd1a-d6d2415dc616" class="ScriptGenerator" constructor="ScriptGenerator(java.util.ArrayList)">
+			<java:args ><![CDATA[#[{
+	arg0: payload as Array
+}]]]></java:args>
+		</java:new>
+		<java:invoke doc:name="Invoke" doc:id="eef12459-960e-47b7-80bc-af40d9c440df" instance="#[payload]" class="ScriptGenerator" method="generate()"/>
+		<ee:transform doc:name="Transform Message" doc:id="2bce0608-4a16-44fb-ba48-94fc26b3e22e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="core-productFlow1" doc:id="b75562a2-8e4c-488d-91f4-7bc297a17a4f" >
+		<http:listener doc:name="Listener" doc:id="691e593b-842c-4921-907c-da8c3015f033" config-ref="HTTP_Listener_config" path="/maptest" allowedMethods="POST"/>
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="8559efa8-7ed3-4614-bef8-b9dadb6af215" variableName="product_data"/>
+		<os:retrieve doc:name="Retrieve" doc:id="f92298c6-0b3b-486e-be5e-051f3af25a5d" key="mappingConfig" target="mappingConfig" />
+		<ee:transform doc:name="Transform Message" doc:id="b5e953d7-c65a-4c3c-b97b-0ff9df68788a">
+			<ee:message>
+				<ee:set-payload><![CDATA[//%dw 2.0
+//output application/json
+//
+//var applyMapping = (data, mapping) -> (
+//    if (mapping."type" == "array_to_array") {
+//    	(mapping.target) : data[mapping.source] map (item) -> applyMappings(item,mapping.mappings)
+//	}
+//	else if (mapping."type" == "field_to_field") {
+//	    (mapping.target) : data[mapping.source]
+//	}
+//	else if (mapping."type" == "field_to_object") {
+//		(mapping.target) : applyMappings(data, mapping.mappings)
+//	}
+//	else if (mapping."type" == "object_to_field") {
+//		(mapping.target): (applyMappings(data[mapping.source], mapping.mappings))[mapping.target]
+////        (testMapping(data[mapping.source], mapping.mappings))
+//	}
+//	else if (mapping."type" == "object_to_object") {
+//		(mapping.target) : applyMappings(data[mapping.source], mapping.mappings)
+//	}
+//	else {}
+//)
+//
+//var applyMappings = (data, mappings) -> {
+//	(
+//		mappings map (mapping) -> applyMapping(data, mapping)
+//	)
+//}
+//
+//
+//---
+//
+//applyMapping(vars."product_data", vars.mappingConfig.config)
+
+
+%dw 2.0
+output application/json
+
+var applyMapping = (data, mapping, index) -> (
+    if (mapping."type" == "array_to_array") {
+    	(mapping.target) : data[mapping.source] map (item, idx) -> applyMappings(item,mapping.mappings, idx)
+	}
+	else if (mapping."type" == "field_to_field") {
+		(
+		if (mapping.targetDataType == "string") {
+			(mapping.target) : (data[mapping.source] as String)
+		}
+		else if (mapping.targetDataType == "number") {
+			(mapping.target) : (data[mapping.source] as Number)
+		}
+		else {
+			(mapping.target) : data[mapping.source]
+		}
+		)
+	    
+	}
+	else if (mapping."type" == "field_to_object") {
+		(mapping.target) : applyMappings(data, mapping.mappings, index)
+	}
+	else if (mapping."type" == "object_to_field") {
+		(mapping.target): (applyMappings(data[mapping.source], mapping.mappings, index))[mapping.target]
+//        (testMapping(data[mapping.source], mapping.mappings))
+	}
+	else if (mapping."type" == "object_to_object") {
+		(if (mapping."source" == "multiple") {
+		    (mapping.target) : applyMappings(data, mapping.mappings, index)
+		}
+		else {
+			(mapping.target) : applyMappings(data[mapping.source], mapping.mappings, index)
+		})
+	}
+	else if (mapping."type" == "index_to_field") {
+		(mapping.target) : index
+	}
+	else if (mapping."type" == "content_to_field") {
+		(mapping.target) : mapping.source
+	}
+	else if (mapping."type" == "arrayItem_to_field") {
+		(mapping.target) : (applyMappings(data[mapping.source][mapping.itemIndex], mapping.mappings, index))[mapping.target]
+	}
+	else {}
+)
+
+var applyMappings = (data, mappings, index) -> {
+	(
+		mappings map (mapping) -> applyMapping(data, mapping, index)
+	)
+}
+
+
+---
+
+applyMapping(vars."product_data", vars.mappingConfig.config, 0)
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="core-productFlow2" doc:id="5a5a87db-e6b9-403d-bc1a-9062d6eb80ba" >
+		<http:listener doc:name="Listener" doc:id="7ecf182d-46ac-4926-b671-184d917b3577" config-ref="HTTP_Listener_config" path="/mapconfig" allowedMethods="POST"/>
+		<os:store doc:name="Store" doc:id="46b3009e-96de-48b3-bbd7-40d02979acab" key="mappingConfig"/>
+	</flow>
+</mule>
