@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:oauth="http://www.mulesoft.org/schema/mule/oauth" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/oauth http://www.mulesoft.org/schema/mule/oauth/current/mule-oauth.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="3b3ca049-7637-4800-a715-93738c0c2532" >
+		<http:request-connection protocol="HTTPS" port="443" >
+		</http:request-connection>
+	</http:request-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="082cd74b-4354-4e75-b610-5ebd156884a7" file="connection.properties" />
+	<file:config name="File_Config" doc:name="File Config" doc:id="480d18cc-e3fc-47bb-8a6e-a8aebec80da8" />
+	<configuration-properties doc:name="Configuration properties" doc:id="2a94d5bf-5101-4b6b-a3b4-0963f25e42ec" file="test.properties" />
+	<flow name="general-connectorFlow" doc:id="5035fd45-5282-4431-8dd0-1da486d45cb4" >
+		<http:listener doc:name="Listener" doc:id="d1aa572c-c3fa-4c3a-abb3-4a89004bdb70" config-ref="HTTP_Listener_config" path="/config" allowedMethods="POST"/>
+		<os:store doc:name="Store" doc:id="79361aec-82fd-410c-9dec-2169177fe7fb" key="connection_config"/>
+	</flow>
+	<flow name="general-connectorFlow1" doc:id="cf090731-a62f-4dc7-83a6-dd27f920143c" >
+		<http:listener doc:name="Listener" doc:id="3db0841f-831c-46ea-8bbd-dcfc4d1307f5" config-ref="HTTP_Listener_config" path="/connect" allowedMethods="POST"/>
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="f2144061-06d5-4438-a86a-1ff27d139216" variableName="product_data"/>
+		<os:retrieve doc:name="Retrieve" doc:id="f7b9e03f-be5c-474e-954c-3fc0b7d9eddf" key="connection_config" target="connection_config" />
+		<java:invoke-static doc:name="Invoke static" doc:id="777c1718-2674-49e0-a2db-6adb67e89e8b" class="TokenGetter" method="TokenLoader(java.lang.String)">
+			<java:args ><![CDATA[#[%dw 2.0
+output application/json
+
+---
+
+{
+	"userid": ("user7" as String)
+}]]]></java:args>
+		</java:invoke-static>
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="3c93e208-29c4-438a-9562-dd9177e2caa1" variableName="access_token"/>
+		<http:request method="POST" doc:name="Request" doc:id="5b0abbf8-9d57-4f78-8511-e0ad85e97cd1" config-ref="HTTP_Request_configuration" url="https://graph.facebook.com:443/v7.0/689293501912943/batch">
+			<http:body><![CDATA[#[vars.product_data]]]></http:body>
+			<http:headers><![CDATA[#[{
+	"Authorization": "Bearer " ++ vars.access_token
+}]]]></http:headers>
+			<http:query-params><![CDATA[#[output application/java
+---
+{
+	"Key" : "AIzaSyCXpGcOJPaq573UuArs7z___0okz__YO3A"
+}]]]></http:query-params>
+		</http:request>
+	</flow>
+	<flow name="general-connectorFlow2" doc:id="3d73525b-02df-4c2c-80c8-272724e55045" >
+		<http:listener doc:name="Listener" doc:id="d0fb1476-98f8-4254-97f4-99fa74e96c93" config-ref="HTTP_Listener_config" path="/tokentest" allowedMethods="POST"/>
+		<java:invoke-static doc:name="Invoke static" doc:id="8411dc1f-4517-4524-bffd-d7bfa0c48cd5" class="TokenGetter" method="main(java.lang.String[])">
+			<java:args ><![CDATA[#[{
+	arg0: null
+}]]]></java:args>
+		</java:invoke-static>
+	</flow>
+</mule>

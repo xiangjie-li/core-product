@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 
 public class ScriptGenerator {
 
@@ -18,17 +20,47 @@ public class ScriptGenerator {
 	
 	
 	
-	public LinkedHashMap generate() {
+	public LinkedHashMap[] generate() {
 		System.out.println("start to generate");
-		
-		LinkedHashMap config = new LinkedHashMap();
+		// try
+		LinkedHashMap[] configs = new LinkedHashMap[1];
+		configs[0] = new LinkedHashMap();
+
 		for (LinkedHashMap m : arr) {
 			String[] targetPathArr = ((String) m.get("target")).split("\\.");
 		    String[] sourcePathArr = ((String) m.get("source")).split("\\.");
 		    int maxDepth = Math.max(targetPathArr.length, sourcePathArr.length) - 1;
-		    generateMapping(config, targetPathArr, sourcePathArr, maxDepth, 0, 0);
+		    
+		    boolean canFindSuchConfig = false;
+		    for (int i = 0; i < configs.length; i++) {
+		    	if (configs[i].containsKey("target") && configs[i].get("target").equals(trimPath(targetPathArr[0]))) {
+		    		generateMapping(configs[i], targetPathArr, sourcePathArr, maxDepth, 0, 0);
+		    		canFindSuchConfig = true;
+		    		break;
+		    	}
+		    }
+		    
+		    if (!canFindSuchConfig) {
+		    	if (configs[configs.length - 1].containsKey("target")) {
+		    		LinkedHashMap config = new LinkedHashMap();
+					LinkedHashMap[] newConfigs = new LinkedHashMap[configs.length + 1];
+					for (int i = 0; i < configs.length; i++) {
+						newConfigs[i] = configs[i];
+					}
+					newConfigs[configs.length] = config;
+					configs = newConfigs;
+		    	}
+				generateMapping(configs[configs.length - 1], targetPathArr, sourcePathArr, maxDepth, 0, 0);
+		    }
 		}
-		return config;
+		
+		return configs;
+				
+	}
+	
+	public String trimPath(String path) {
+		if (path.charAt(0) == '*') path = path.substring(1);
+		return path;
 	}
 	
 
@@ -54,7 +86,7 @@ public class ScriptGenerator {
 		
 		
 	    // if type is "arrayItem_to_something", specify the itemIndex as an element in the config object
-	    if (curType == "arrayItem_to_field" || curType == "arrayItem_to_object") {
+	    if (curType.equals("arrayItem_to_field") || curType.equals("arrayItem_to_object")) {
 	    	int indexOfOpenSquareBracket = curSourcePath.indexOf('[');
 	    	String itemIndexWithBracket = curSourcePath.substring(indexOfOpenSquareBracket);
 	    	int itemIndex = Integer.parseInt(itemIndexWithBracket.substring(1, itemIndexWithBracket.length() - 1));
@@ -74,7 +106,12 @@ public class ScriptGenerator {
 	    
 		
 	    m.put("target", curTargetPath);
-	    m.put("source", curSourcePath);
+	    if (curType.equals("object_to_object") || curType.equals("field_to_object")) {
+	    	m.put("source", "multiple");
+	    }
+	    else {
+		    m.put("source", curSourcePath);
+	    }
 	    m.put("type", curType);
 	    
 	    
@@ -87,14 +124,14 @@ public class ScriptGenerator {
 	    
 	    		LinkedHashMap[] mappings = (LinkedHashMap[]) m.get("mappings"); 
     			String nextTargetPath = targetPathArr[nextTargetDepth].charAt(0) == '*' ? targetPathArr[nextTargetDepth].substring(1) : targetPathArr[nextTargetDepth];
-    			
-    			// try
     			String nextSourcePath = sourcePathArr[nextSourceDepth].charAt(0) == '*' ? sourcePathArr[nextSourceDepth].substring(1) : sourcePathArr[nextSourceDepth];
     					
     					
 	    		int[] offsets = new int[2];
 	    		offsets[0] = 0;    // offsets[0] is the offset of the targetPathDepth
 	    		offsets[1] = 0;    // offsets[1] is the offset of the sourcePathDepth
+	    		
+	    		
 	    		int idx = mappingContainsTarget(mappings, nextTargetPath, nextSourcePath, offsets);
     			while (idx >= 0) {
     				m = mappings[idx];
@@ -117,7 +154,16 @@ public class ScriptGenerator {
 	    	    LinkedHashMap[] mappings = new LinkedHashMap[1];
 	    	    mappings[0] = new LinkedHashMap();
 	    	    m.put("mappings",mappings);
-	    	    generateMapping(((LinkedHashMap[]) m.get("mappings"))[mappingIdx], targetPathArr, sourcePathArr, maxDepth, nextTargetDepth, nextSourceDepth);
+	    	    
+	    	    //try
+	    	    if (curType.equals("object_to_object") || curType.equals("field_to_object")) {
+		    	    generateMapping(((LinkedHashMap[]) m.get("mappings"))[mappingIdx], targetPathArr, sourcePathArr, maxDepth, nextTargetDepth, curSourceDepth);
+
+	    	    }
+	    	    else {
+		    	    generateMapping(((LinkedHashMap[]) m.get("mappings"))[mappingIdx], targetPathArr, sourcePathArr, maxDepth, nextTargetDepth, nextSourceDepth);
+
+	    	    }
 	    	}
 	    	
 	    }
@@ -127,12 +173,20 @@ public class ScriptGenerator {
 	public int mappingContainsTarget(LinkedHashMap[] mappings, String nextTargetPath, String nextSourcePath, int[] offsets) {
 		for (int i = 0; i < mappings.length; i++) {
 			if (mappings[i].get("target").equals(nextTargetPath)) {
-				if (mappings[i].get("type").equals("field_to_object") || (mappings[i].get("type").equals("object_to_object") && !mappings[i].get("source").equals(nextSourcePath))) {
-					mappings[i].put("source", "multiple");
-				}
-				else {
-					offsets[1]++;
-				}
+				
+				
+//				if (mappings[i].get("type").equals("field_to_object") || (mappings[i].get("type").equals("object_to_object") && !mappings[i].get("source").equals(nextSourcePath))) {
+//					mappings[i].put("source", "multiple");
+//				}
+//			    else {
+//					offsets[1]++;
+//				}
+				
+				
+				//try
+				if (!mappings[i].get("source").equals("multiple")) offsets[1]++;
+			
+
 				return i;
 			}
 		}

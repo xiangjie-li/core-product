@@ -26,7 +26,18 @@ http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/cu
 				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-payload]]></ee:set-payload>
+{
+    "userName": "jack",
+    "config_name": "myname",
+    "config": {
+    	"target": "root",
+    	"source": "multiple",
+    	"type": "object_to_object",
+    	"mappings": payload
+   
+    }
+}
+]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 	</flow>
@@ -128,7 +139,7 @@ var applyMappings = (data, mappings, index) -> {
 
 ---
 
-applyMapping(vars."product_data", vars.mappingConfig.config, 0)
+(applyMapping(vars."product_data", vars.mappingConfig.config, 0)).root
 ]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
